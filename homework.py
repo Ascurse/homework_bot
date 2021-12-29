@@ -36,7 +36,7 @@ HOMEWORK_STATUSES = {
 
 
 def send_message(bot, message):
-    """Отправка сообщения в телеграм"""
+    """Отправка сообщения в телеграм."""
     logger.info('Отправляем в телеграм')
     chat_id = TELEGRAM_CHAT_ID
     try:
@@ -47,7 +47,7 @@ def send_message(bot, message):
 
 
 def get_api_answer(current_timestamp):
-    """Получаем ответ от API"""
+    """Получаем ответ от API."""
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
     if requests.get(
@@ -62,7 +62,7 @@ def get_api_answer(current_timestamp):
 
 
 def check_response(response):
-    """Проверка ответа API на корректность"""
+    """Проверка ответа API на корректность."""
     if type(response) != dict:
         logger.error('Неправильный тип ответа')
         raise TypeError("Ответ должен быть словарем")
@@ -75,7 +75,7 @@ def check_response(response):
 
 
 def parse_status(homework):
-    """Получаем статус ДЗ"""
+    """Получаем статус ДЗ."""
     if 'homework_name' in homework:
         homework_name = homework.get('homework_name')
     else:
@@ -95,7 +95,7 @@ def parse_status(homework):
 
 
 def check_tokens():
-    """Проверка наличия токенов"""
+    """Проверка наличия токенов."""
     if TELEGRAM_TOKEN and TELEGRAM_CHAT_ID and PRACTICUM_TOKEN:
         return True
     else:
