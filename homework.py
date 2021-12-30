@@ -28,7 +28,7 @@ HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
 
 class TokenError(Exception):
-    """Ошибка. Отсутсвует один из токенов!"""
+    """Ошибка.Отсутсвует один из токенов."""
 
 
 HOMEWORK_STATUSES = {
