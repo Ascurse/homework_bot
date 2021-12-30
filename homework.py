@@ -26,7 +26,10 @@ RETRY_TIME = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
-TokenError = 'Один из токенов недоступен!'
+
+class TokenError(Exception):
+    """Ошибка. Отсутсвует один из токенов!"""
+
 
 HOMEWORK_STATUSES = {
     'approved': 'Работа проверена: ревьюеру всё понравилось. Ура!',
@@ -38,24 +41,20 @@ HOMEWORK_STATUSES = {
 def send_message(bot, message):
     """Отправка сообщения в телеграм."""
     logger.info('Отправляем в телеграм')
-    chat_id = TELEGRAM_CHAT_ID
     try:
-        bot.send_message(chat_id=chat_id, text=message)
+        bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
         logger.info('Сообщение успешно отправлено')
-    except Exception:
-        logger.error('Сообщение не удалось отправить')
+    except telegram.error as error:
+        logger.error(f'Сообщение не удалось отправить. Ошибка {error}')
 
 
 def get_api_answer(current_timestamp):
     """Получаем ответ от API."""
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
-    if requests.get(
-        ENDPOINT,
-        headers=HEADERS,
-        params=params
-    ).status_code == 200:
-        return requests.get(ENDPOINT, headers=HEADERS, params=params).json()
+    response = requests.get(ENDPOINT, headers=HEADERS, params=params)
+    if response.status_code == 200:
+        return response.json()
     else:
         logger.error('Эндпоинт недоступен')
         raise ConnectionError('Ошибка подключения')
@@ -63,12 +62,12 @@ def get_api_answer(current_timestamp):
 
 def check_response(response):
     """Проверка ответа API на корректность."""
-    if type(response) != dict:
+    if not isinstance(response, dict):
         logger.error('Неправильный тип ответа')
-        raise TypeError("Ответ должен быть словарем")
+        raise TypeError('Ответ должен быть словарем')
     else:
         homeworks = response.get('homeworks')
-    if type(homeworks) != list:
+    if not isinstance(homeworks, list):
         logger.error('Неправильный тип ответа')
         raise TypeError('Домашки должны подаваться списком')
     return homeworks
@@ -76,16 +75,12 @@ def check_response(response):
 
 def parse_status(homework):
     """Получаем статус ДЗ."""
-    if 'homework_name' in homework:
+    if homework.get('homework_name', 'status') is not None:
         homework_name = homework.get('homework_name')
-    else:
-        logger.error('Отсутствует ключ!')
-        raise KeyError('Отсутствует название ДЗ')
-    if 'status' in homework:
         homework_status = homework.get('status')
     else:
         logger.error('Отсутсвует ключ!')
-        raise KeyError('Отсутсвует статус ДЗ')
+        raise KeyError('Отсутсвует один из ключей!')
     if homework_status in HOMEWORK_STATUSES:
         verdict = HOMEWORK_STATUSES.get(homework_status)
     else:
@@ -124,7 +119,8 @@ def main():
                 send_message(bot, message)
             else:
                 logger.info('Работы не найдены')
-            current_timestamp = response.get('current_date')
+            current_timestamp = (response.get('current_date')
+                                 or current_timestamp)
             time.sleep(RETRY_TIME)
 
         except Exception as error:
