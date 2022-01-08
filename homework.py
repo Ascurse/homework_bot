@@ -5,6 +5,7 @@ import time
 import telegram
 
 from dotenv import load_dotenv
+from http import HTTPStatus
 
 load_dotenv()
 
@@ -44,7 +45,7 @@ def send_message(bot, message):
     try:
         bot.send_message(chat_id=TELEGRAM_CHAT_ID, text=message)
         logger.info('Сообщение успешно отправлено')
-    except telegram.error as error:
+    except telegram.error.TelegramError as error:
         logger.error(f'Сообщение не удалось отправить. Ошибка {error}')
 
 
@@ -53,7 +54,7 @@ def get_api_answer(current_timestamp):
     timestamp = current_timestamp or int(time.time())
     params = {'from_date': timestamp}
     response = requests.get(ENDPOINT, headers=HEADERS, params=params)
-    if response.status_code == 200:
+    if response.status_code == HTTPStatus.OK:
         return response.json()
     else:
         logger.error('Эндпоинт недоступен')
@@ -75,10 +76,9 @@ def check_response(response):
 
 def parse_status(homework):
     """Получаем статус ДЗ."""
-    if homework.get('homework_name', 'status') is not None:
-        homework_name = homework.get('homework_name')
-        homework_status = homework.get('status')
-    else:
+    homework_name = homework.get('homework_name')
+    homework_status = homework.get('status')
+    if homework_name is None or homework_status is None:
         logger.error('Отсутсвует ключ!')
         raise KeyError('Отсутсвует один из ключей!')
     if homework_status in HOMEWORK_STATUSES:
@@ -100,11 +100,11 @@ def check_tokens():
 def main():
     """Основная логика работы бота."""
     logger.debug('Start!')
-    current_timestamp = int(time.time())
-    bot = telegram.Bot(token=TELEGRAM_TOKEN)
     if check_tokens is False:
         logger.critical('Один из токенов недоступен')
         raise TokenError
+    current_timestamp = int(time.time())
+    bot = telegram.Bot(token=TELEGRAM_TOKEN)
     while True:
         try:
             logger.debug('Получаем ответ от API')
